@@ -60,3 +60,5 @@ ehthumbs.db
 Thumbs.db
 
 doc/*.pdf
+# Pilot: raw outputs, logs and installed dependencies
+pilot/runs/

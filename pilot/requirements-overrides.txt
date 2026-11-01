@@ -1,0 +1,8 @@
+# The authors' requirements file cannot be installed as written. These replace
+# only the pins that conflict, and the lock file is generated from them:
+#   uv pip compile authors/requirements/requirements_creative_writing_game24.txt \
+#     --override pilot/requirements-overrides.txt --python-version 3.11 \
+#     --python-platform linux -o pilot/requirements.lock.txt
+openai==1.90.0   # authors: 1.97.1; vllm 0.10.0 needs <=1.90.0. Only used with api_eval.
+tqdm==4.66.3     # authors: 4.65.0; datasets 3.3.2 needs >=4.66.3
+numpy==1.26.4    # authors: 1.24.3; vllm 0.10.0 needs >=1.25 through mistral-common
