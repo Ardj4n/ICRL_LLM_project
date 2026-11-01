@@ -1,91 +1,31 @@
-**Claim 1: Model Size and Judge Quality in ICRL**
+**Model.** All experiments use Qwen3-32B (Qwen/Qwen3-32B, bf16, thinking mode disabled, served with vLLM on Renku) as both the policy and the self-judge, since it is the default open model in the authors’ implementation; if it does not fit our Renku GPU allocation, we use Qwen3-14B instead, decided after the pilot run and applied to all experiments.
 
-**1. What the project is about:**
+**Claim 2: What ICRL Uses From Its History**
 
-**Generalization.** The paper shows ICRL on Game of 24 with one model, GPT-4.1, which also grades its own attempts. We test whether the improvement over rounds holds for a smaller and a larger open model. We also test whether it depends on how good the judge is. The paper suggests that self-evaluation limits performance compared with external feedback, but does not test this.
+What the project is about:
 
-Our question: Does ICRL’s improvement on Game of 24 depend on model size, and how much does it depend on the quality of the judge? The paper raises the second point as a hypothesis but tests neither.
-
-**2. Baselines**
-
-We compare two models and two kinds of judge:
-
-|                       | Self-judge (paper’s setting) | Oracle judge |
-| --------------------- | ---------------------------- | ------------ |
-| Small Qwen3 (e.g. 8B) | ICRL                         | ICRL         |
-| Qwen3-32B             | ICRL (shared with Claim 2)   | ICRL         |
-
-- Oracle judge: an exact step score computed by brute force (is 24 still reachable from the remaining numbers?). This stands for perfect external feedback.
-- Best-of-N for both models, with the same number of attempts, as the baseline that uses no learning.
-- Optional, if time allows: one model from another family, comparing ICRL (self-judge) with Best-of-N.
-
-**3. Evaluation protocol**
-
-We keep the paper’s setup: the step-scoring prompt, ICRL Preset instructions and the rule-based correctness check. We report:
-
-- Per-round and running-max success rate, as in the paper.
-- The gain of ICRL over Best-of-N for each of the four cells.
-- Judge accuracy: how often each model’s step scores match the exact scores. This is computed from saved logs and needs no extra runs.
-
-Results are reported as mean ± standard error over 3 seeds. All configurations use the same problems and number of rounds.
-
-**4. Theorem/proof targets**
-
-Not applicable.
-
-**5. Test instances**
-
-The paper’s 100 Game of 24 problems (Tree of Thoughts dataset, indices 900–999)
-
-**6. Compute budget**
-
-We use the authors’ code with vLLM. The plan is about 15 runs: 3 ICRL configurations, plus Best-of-N for 2 models, each with 3 seeds. The 32B self-judge runs are reused from Claim 2. Oracle-judge runs are cheaper than the paper’s setup because they need no judge calls. We will fix the number of rounds (30–50) and model sizes after a pilot run this week.
-
-**7. Expected limitations**
-
-- The small model may fail the answer format; we report the failure rate separately.
-- Qwen3’s built-in reasoning mode is turned off, so the task is not solved in a single pass.
-- We test one model family on one task, so we draw conclusions about trends, not about matching the paper’s numbers.
-
-**Claim 2: Ablation Study of In-Context Window Size**
-
-\- What the project is about:
-
-1. **Ablation**. The paper reports that ICRL performs worse when only the last three attempts are kept instead of the full history. We reproduce this on Game of 24 and, if the computational power allows, test more history sizes. We also check whether a longer history is still worth it under a fixed token budget.Generalization. We use the model chosen by our group. If it differs from GPT-4.1, this also tests whether the effect holds for another model.
-2.  **Baselines**
-
-\- k = all: Full history (paper's default).
-
-\- k = 3: Last three attempts (paper's ablation).
-
-\- k = 0: No history, similar to Best-of-N.
-
-Optional, if the compute power allows: k = 1, 5, 10. The comparison of k = all and k = 3 is the reproduction; the rest are extensions.
-
-1. **Evaluation protocol**
-
-We keep the paper's setup: the model uses its own self-evaluation rewards, and correctness is checked separately with a rule-based checker. We report:
-
-- Per-round and running-max success rate, as in the paper (Figures 2, 3, 13, 14).
-- Success rate against tokens used, comparing history sizes at the same number of rounds and at the same token budget (counting  prompts, responses and self-evaluation calls).
-
-Results are given as mean and standard error over three seeds, with the same problems and number of rounds for all configurations.
-
-1. **Theorem/proof targets**
-
-​      Not applicable.
-
-1. **Test instances**
-
-The paper's 100 Game of 24 problems (Tree of Thoughts dataset, indices 900–999 in the authors' code).
-
-1.  **Compute budget**
-
-We reuse the authors' implementation, which supports vLLM (Qwen3-32B on two GPUs by default) and API models; the history size is a parameter in the code. Minimum plan: 3 history sizes × 3 seeds = 9 runs. Rounds and GPU needs will be fixed after a pilot run and discussed with our supervisor. If running the model locally is not feasible, we discuss an API alternative.
-
-1. **Expected limitations**
-
-A different or smaller model may give different numbers and weaker self-evaluation rewards. We therefore focus on whether the trend between history sizes holds, not on matching the paper's exact results, and document all deviations.
+1. **Ablation.** In ICRL, the model sees its previous attempts and their rewards in the prompt. **We test which parts of this history matter:**
+   - Context size: how many previous attempts are kept.
+   - Rewards: removed completely, instead of set to zero as in the paper (in the paper’s code, per-step rewards stay visible).
+   - Order: whether the order of previous attempts matters.
+   - Exploration: instead of always alternating explore and exploit, the model explores more when few attempts are available and exploits more as the history grows (epsilon-greedy).
+2. **Generalization.** We use Qwen3-32B instead of GPT-4.1.
+3. **Baselines**
+    Reference: the paper’s setup (full history, rewards shown, attempts in order, alternating explore/exploit). Each condition changes one thing:
+   - k = 3 (paper’s ablation) and k = 0 (no history, like Best-of-N).
+   - Rewards removed.
+   - Attempts in random order, or sorted by reward.
+   - Epsilon-greedy exploration, with epsilon decreasing as more attempts are available.
+4. **Evaluation protocol**
+   Per-round and running-max success rate, as in the paper, and tokens used for the context-size conditions. Mean and standard error over 3 seeds, same problems and rounds for all conditions.
+5. **Theorem/proof targets**
+   Not applicable.
+6. **Test instances**
+   The paper’s 100 Game of 24 problems (indices 900–999 in the authors’ code).
+7. **Compute budget**
+   Authors’ code with vLLM. 7 conditions × 3 seeds = 21 runs, of which the reference and k = 0 runs (6) are shared with Claim 1, so 15 new runs. Rounds fixed after the pilot run.
+8. **Expected limitations**
+   We use one model and one task, so we compare trends, not the paper’s exact numbers.
 
 **Claim 3: Prompt Wording in ICRL (Reward vs. Regret, Exploration/Exploitation Terms)**
 

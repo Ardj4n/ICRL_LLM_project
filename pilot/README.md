@@ -12,11 +12,36 @@ Note these from the Renku UI, because they cannot be read from inside the sessio
 
 **The auto-pause timer matters most.** The public pool pauses a session after 2 hours idle, and each pool can set its own timers. A pause can kill a running process, and deleting a session deletes its disk. Check that a busy GPU counts as "not idle" on our pool.
 
+## Where the model lives
+
+| Location | Pause | Shutdown | Cost |
+| --- | --- | --- | --- |
+| Session disk | Kept for about two weeks | **Deleted** | Download again after a shutdown |
+| Data connector (e.g. S3 bucket) | Kept | Kept | Needs a bucket; loading over a network mount may be slow |
+| Git | Kept | Kept | Only for small files: results, not weights or raw outputs |
+
+The weights are public on Hugging Face, so losing them costs only the download time. The results are the part that cannot be recovered, and step 2 and step 5 commit them. Pause sessions rather than shutting them down.
+
+For the pilot, the session disk is enough if it has room: its timings then measure a fast local disk. `HF_HOME` must be set in **every new terminal**, and the scripts stop if it is missing.
+
+```bash
+export HF_HOME=/path/on/the/session/disk
+```
+
+Use a data connector if the download is too slow to repeat. To avoid the symlinks of the Hugging Face cache on a network mount, download into a plain folder and pass that folder as the model:
+
+```bash
+hf download Qwen/Qwen3-32B --local-dir /mount/of/connector/qwen3-32b
+$PY pilot/run_game24_pilot.py --model /mount/of/connector/qwen3-32b --rounds 2
+```
+
+If `model_load_s` in `run.json` is too high from there, copy the folder to the session disk at the start of each session. The probe measures both options: `network_to_huggingface` for the download speed, and `--disk connector=/mount/of/connector` for the write speed.
+
 ## Steps
 
-Run from the repository root, in a session with GPUs.
+Run from the repository root, in the terminal of a Renku VS Code session with GPUs. `uv` is already installed there.
 
-**1. Set up** (installs into `pilot/runs/_deps/`). `HF_HOME` needs about 70 GB free for Qwen3-32B, or 30 GB for Qwen3-14B.
+**1. Set up** (installs into `pilot/runs/_deps/`, which is lost at shutdown like the rest of the session disk). `HF_HOME` needs about 70 GB free for Qwen3-32B, or 30 GB for Qwen3-14B.
 
 ```bash
 export HF_HOME=/path/on/a/large/disk
@@ -38,12 +63,14 @@ $PY pilot/run_game24_pilot.py --rounds 2
 $PY pilot/summarize.py pilot/results/<run_id>
 ```
 
-**4. Pilot.** Run it inside `tmux`, with a time limit that fits the session. It stops cleanly at the start of the next round.
+**4. Pilot.** Run it with `nohup`, so that it survives closing the terminal, with a time limit that fits the session. It stops cleanly at the start of the next round.
 
 ```bash
-tmux new -s pilot
-$PY pilot/run_game24_pilot.py --rounds 51 --max-minutes 240
+nohup $PY pilot/run_game24_pilot.py --rounds 51 --max-minutes 240 > pilot/runs/pilot.out 2>&1 &
+tail -f pilot/runs/pilot.out   # Ctrl+C stops watching, not the run
 ```
+
+`nohup` does not protect against a session pause. Check whether closing the browser tab counts as idle on our pool.
 
 **5. Summarise and commit.**
 

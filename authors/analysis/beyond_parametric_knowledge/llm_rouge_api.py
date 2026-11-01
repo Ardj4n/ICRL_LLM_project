@@ -25,7 +25,7 @@ from openai import OpenAI
 from concurrent.futures import ThreadPoolExecutor
 
 
-client = OpenAI(api_key="Your_API_Key")
+client = OpenAI(api_key="YOUR_API_KEY")
 
 from rouge_score import rouge_scorer
 # from tqdm import tqdm

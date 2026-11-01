@@ -267,6 +267,9 @@ def parse_args():
 
 def main():
     args = parse_args()
+    # Otherwise a new terminal without HF_HOME silently downloads the model again into ~/.cache.
+    if not args.dry_run and "HF_HOME" not in os.environ and not Path(args.model).exists():
+        sys.exit("Set HF_HOME, or pass a local folder as --model: see 'Where the model lives' in pilot/README.md")
     start = time.monotonic()
     system = probe_system.collect(disk_test_mb=0 if args.dry_run else 256, query_network=False)
     if args.gpus is None:

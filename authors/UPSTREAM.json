@@ -1,0 +1,43 @@
+{
+  "repository": "https://github.com/garified/ICRL-for-LLM-Agent",
+  "tag": "icrl-proposal-base",
+  "commit": "43429cdcf790c61aeebbcefa9fe8a83bd7fe24b6",
+  "scrubbed": [
+    {
+      "file": "analysis/beyond_parametric_knowledge/beyond_parametric_knowledge.py",
+      "replaced": {
+        "openai_style": 2
+      }
+    },
+    {
+      "file": "analysis/beyond_parametric_knowledge/llm_rouge_api.py",
+      "replaced": {
+        "openai_style": 1
+      }
+    },
+    {
+      "file": "experiments/creative_writing/baselines/creative_writing_reflexion.py",
+      "replaced": {
+        "openai_style": 1
+      }
+    },
+    {
+      "file": "experiments/creative_writing/baselines/creative_writing_self_refine.py",
+      "replaced": {
+        "openai_style": 1
+      }
+    },
+    {
+      "file": "experiments/creative_writing/creative_writing_icrl.py",
+      "replaced": {
+        "openai_style": 1
+      }
+    },
+    {
+      "file": "experiments/creative_writing/creative_writing_icrl_prompt_variants.py",
+      "replaced": {
+        "openai_style": 1
+      }
+    }
+  ]
+}

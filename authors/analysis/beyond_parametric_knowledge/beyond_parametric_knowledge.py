@@ -58,10 +58,10 @@ if not api_eval and not openrouter_eval:
               gpu_memory_utilization=0.95)
 elif api_eval:
     # OpenAI API initialization
-    client = OpenAI(api_key="Your_API_Key")
+    client = OpenAI(api_key="YOUR_API_KEY")
 elif openrouter_eval:
     # OpenRouter configuration (exactly following math_bench.py)
-    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "Your_API_Key")
+    OPENROUTER_API_KEY = os.getenv("OPENROUTER_API_KEY", "YOUR_API_KEY")
     OPENROUTER_MODEL = "microsoft/phi-4"
     openrouter_client = OpenAI(base_url="https://openrouter.ai/api/v1", api_key=OPENROUTER_API_KEY)
 

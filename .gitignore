@@ -62,3 +62,6 @@ Thumbs.db
 doc/*.pdf
 # Pilot: raw outputs, logs and installed dependencies
 pilot/runs/
+
+# Upstream clone used by tools/sync_authors.py (contains the authors' API keys)
+ignored/

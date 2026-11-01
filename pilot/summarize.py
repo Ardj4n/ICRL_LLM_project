@@ -123,29 +123,38 @@ def gpu_summary(samples):
 
 
 def success_by_round(raw_dir):
-    """Success is our reading of the authors' reward fields: right value and all four numbers used once."""
+    """Count both success rules.
+
+    The authors' plots.ipynb uses accuracy_reward == 0 only, so an expression equal to 24
+    that does not use the four given numbers still counts. "Strict" also requires format_reward == 0.
+    """
     path = raw_dir / "output_list.json"
     if not path.exists():
         return None
     problems = json.loads(path.read_text())
     n_rounds = max((len(p) for p in problems), default=0)
-    solved = [False] * len(problems)
+    solved_authors, solved_strict = [False] * len(problems), [False] * len(problems)
     curve = []
     for r in range(n_rounds):
-        hits, format_failures, empty = 0, 0, 0
+        hits_authors, hits_strict, format_failures, empty = 0, 0, 0, 0
         for i, problem in enumerate(problems):
             if r >= len(problem):
                 continue
             entry = problem[r]
-            good = float(entry["accuracy_reward"]) == 0 and float(entry["format_reward"]) == 0
-            hits += good
-            solved[i] = solved[i] or good
-            format_failures += float(entry["format_reward"]) != 0
+            right_value = float(entry["accuracy_reward"]) == 0
+            right_numbers = float(entry["format_reward"]) == 0
+            hits_authors += right_value
+            hits_strict += right_value and right_numbers
+            solved_authors[i] = solved_authors[i] or right_value
+            solved_strict[i] = solved_strict[i] or (right_value and right_numbers)
+            format_failures += not right_numbers
             empty += not entry["model_answer"]
         curve.append({
             "round": r,
-            "solved": hits,
-            "solved_so_far": sum(solved),
+            "solved_authors_rule": hits_authors,
+            "solved_authors_rule_so_far": sum(solved_authors),
+            "solved_strict": hits_strict,
+            "solved_strict_so_far": sum(solved_strict),
             "format_failures": format_failures,
             "no_answer_tag": empty,
             "n_problems": len(problems),
@@ -267,13 +276,15 @@ def build_report(results_dir, target_rounds):
         marks = sorted(set(range(0, len(curve), step)) | {len(curve) - 1})
         lines += [
             "", "## Success (setup check)", "",
-            "Success is `accuracy_reward == 0` and `format_reward == 0`. The authors' own success script "
-            "is not in their repository, so this is our reading. One seed: not a result.", "",
-            "| Round | Solved | Solved so far | Format failures | No answer tag |",
-            "| --- | --- | --- | --- | --- |",
+            "Authors' rule (`plots.ipynb`): `accuracy_reward == 0`. Strict: also `format_reward == 0`, "
+            "so the answer must use the four given numbers. Their plots also skip round 0. "
+            "One seed: not a result.", "",
+            "| Round | Authors' rule | So far | Strict | So far | Format failures | No answer tag |",
+            "| --- | --- | --- | --- | --- | --- | --- |",
         ]
         lines += [
-            f"| {curve[r]['round']} | {curve[r]['solved']} | {curve[r]['solved_so_far']} | "
+            f"| {curve[r]['round']} | {curve[r]['solved_authors_rule']} | {curve[r]['solved_authors_rule_so_far']} | "
+            f"{curve[r]['solved_strict']} | {curve[r]['solved_strict_so_far']} | "
             f"{curve[r]['format_failures']} | {curve[r]['no_answer_tag']} |"
             for r in marks
         ]
