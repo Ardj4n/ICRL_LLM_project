@@ -56,10 +56,10 @@ cloudpickle==3.1.2
     # via vllm
 compressed-tensors==0.10.2
     # via vllm
-cuda-pathfinder==1.8.5
-    # via cupy-cuda12x
-cupy-cuda12x==14.2.0
-    # via ray
+cupy-cuda12x==13.6.0
+    # via
+    #   --override pilot/requirements-overrides.txt
+    #   ray
 datasets==3.3.2
     # via -r authors/requirements/requirements_creative_writing_game24.txt
 depyf==0.19.0
@@ -93,6 +93,8 @@ fastar==0.12.0
     # via
     #   fastapi
     #   fastapi-cloud-cli
+fastrlock==0.8.4
+    # via cupy-cuda12x
 filelock==4.2.6
     # via
     #   datasets
@@ -258,8 +260,9 @@ openai==1.90.0
     #   --override pilot/requirements-overrides.txt
     #   -r authors/requirements/requirements_creative_writing_game24.txt
     #   vllm
-opencv-python-headless==5.0.0.93
+opencv-python-headless==4.11.0.86
     # via
+    #   --override pilot/requirements-overrides.txt
     #   mistral-common
     #   vllm
 opentelemetry-api==1.45.2
@@ -297,8 +300,10 @@ packaging==26.3
     #   lm-format-enforcer
     #   ray
     #   transformers
-pandas==3.1.0
-    # via datasets
+pandas==2.2.3
+    # via
+    #   --override pilot/requirements-overrides.txt
+    #   datasets
 partial-json-parser==0.2.1.1.post7
     # via vllm
 pillow==13.0.0
@@ -326,8 +331,10 @@ psutil==7.2.2
     # via vllm
 py-cpuinfo==9.0.0
     # via vllm
-pyarrow==26.0.0
-    # via datasets
+pyarrow==20.0.0
+    # via
+    #   --override pilot/requirements-overrides.txt
+    #   datasets
 pybase64==1.5.1
     # via vllm
 pycountry==26.2.16
@@ -366,6 +373,8 @@ python-json-logger==4.2.0
     # via vllm
 python-multipart==0.0.33
     # via fastapi
+pytz==2026.6
+    # via pandas
 pyyaml==6.0.3
     # via
     #   datasets
@@ -523,7 +532,9 @@ typing-inspection==0.4.4
     #   pydantic
     #   pydantic-settings
 tzdata==2026.6
-    # via python-dateutil
+    # via
+    #   pandas
+    #   python-dateutil
 urllib3==2.8.0
     # via
     #   requests

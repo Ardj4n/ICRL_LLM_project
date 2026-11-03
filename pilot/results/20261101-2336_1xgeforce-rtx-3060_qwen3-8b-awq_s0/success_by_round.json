@@ -1,0 +1,22 @@
+[
+ {
+  "round": 0,
+  "solved_authors_rule": 2,
+  "solved_authors_rule_so_far": 2,
+  "solved_strict": 1,
+  "solved_strict_so_far": 1,
+  "format_failures": 64,
+  "no_answer_tag": 54,
+  "n_problems": 100
+ },
+ {
+  "round": 1,
+  "solved_authors_rule": 3,
+  "solved_authors_rule_so_far": 5,
+  "solved_strict": 3,
+  "solved_strict_so_far": 4,
+  "format_failures": 80,
+  "no_answer_tag": 75,
+  "n_problems": 100
+ }
+]

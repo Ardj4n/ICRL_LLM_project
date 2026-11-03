@@ -1,0 +1,85 @@
+{
+  "timestamp_utc": "2026-11-01T22:27:34+00:00",
+  "manual": {},
+  "gpu": {
+    "available": true,
+    "count": 1,
+    "cuda_driver_max": "13.1",
+    "total_memory_mib": 12288.0,
+    "gpus": [
+      {
+        "index": 0,
+        "name": "NVIDIA GeForce RTX 3060",
+        "memory_total_mib": 12288.0,
+        "memory_used_at_probe_mib": 129.0,
+        "driver": "591.44",
+        "mig_mode": "[N/A]"
+      }
+    ]
+  },
+  "torch": {
+    "cuda_build": "12.6",
+    "cuda_available": true,
+    "device_count": 1,
+    "bf16_supported": true
+  },
+  "cpu": {
+    "model": "AMD Ryzen 9 9950X 16-Core Processor",
+    "host_visible_cores": 32,
+    "affinity_cores": 32,
+    "cgroup_core_limit": null
+  },
+  "memory": {
+    "host_total_gb": 15.15,
+    "host_available_gb": 14.34,
+    "cgroup_limit_gb": 8589934592.0,
+    "shm_gb": 7.58
+  },
+  "disk": {
+    "project": {
+      "path": "/home/ardj/ICRL_LLM_project",
+      "free_gb": 1009.3,
+      "total_gb": 1081.1,
+      "mount": "/",
+      "fstype": "ext4",
+      "write_mb_s": 1129.2
+    },
+    "hf_cache": {
+      "path": "/home/ardj/hf/hub",
+      "free_gb": 1009.3,
+      "total_gb": 1081.1,
+      "mount": "/",
+      "fstype": "ext4",
+      "write_mb_s": 1348.3
+    },
+    "tmp": {
+      "path": "/tmp",
+      "free_gb": 1009.3,
+      "total_gb": 1081.1,
+      "mount": "/",
+      "fstype": "ext4",
+      "write_mb_s": 1564.1
+    }
+  },
+  "os": {
+    "platform": "Linux-5.15.167.4-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+    "python": "3.11.18"
+  },
+  "packages": {
+    "torch": "2.7.1",
+    "vllm": "0.10.0",
+    "transformers": "4.54.0",
+    "datasets": "3.3.2",
+    "numpy": "1.26.4",
+    "sympy": "1.13.3",
+    "openai": "1.90.0"
+  },
+  "git": {
+    "commit": "9019417c73855846de01bd5a3598423ffac460b7",
+    "branch": "pilot-compute",
+    "dirty": true
+  },
+  "env": {
+    "HF_HOME": "/home/ardj/hf"
+  }
+}

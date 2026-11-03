@@ -6,3 +6,7 @@
 openai==1.90.0   # authors: 1.97.1; vllm 0.10.0 needs <=1.90.0. Only used with api_eval.
 tqdm==4.66.3     # authors: 4.65.0; datasets 3.3.2 needs >=4.66.3
 numpy==1.26.4    # authors: 1.24.3; vllm 0.10.0 needs >=1.25 through mistral-common
+cupy-cuda12x==13.6.0   # unpinned via ray; 14.x needs numpy>=2, which conflicts with the numpy pin above
+opencv-python-headless==4.11.0.86   # unpinned via vllm; 4.12+ needs numpy>=2
+pandas==2.2.3   # unpinned via datasets; 3.x needs numpy>=2
+pyarrow==20.0.0   # unpinned via datasets; newer versions refuse numpy<2 at import, not in their metadata

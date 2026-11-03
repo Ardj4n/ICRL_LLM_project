@@ -98,6 +98,8 @@ If the session dies, `rounds.jsonl` keeps every finished call and `run.json` sta
 
 `pilot/runs/` is ignored by git. It holds the authors' raw outputs, the log and the installed dependencies, and it is lost with the session.
 
+`ignored/game24/<model>_<label>/round_xxx/prompt_yyy.md` is ignored by git. There is one file per round and problem, with the policy request and the problem's four judge requests: each prompt exactly as sent, and its response. Every run of the same model and `--label` replaces the whole folder; `pilot/runs/<run_id>/generations.log` keeps the responses of each run. A 51-round run writes about 5100 files.
+
 Only allowlisted environment variables are saved, because Renku sessions can hold tokens. Check `system.json` and `run.json` anyway before pushing.
 
 ## How to read the results
@@ -108,7 +110,7 @@ Only allowlisted environment variables are saved, because Renku sessions can hol
 
 ## Known problems in the authors' code
 
-- **Requirements.** Their file cannot be installed as written. `requirements-overrides.txt` lists the three pins we changed and why, and `requirements.lock.txt` is the result.
+- **Requirements.** Their file cannot be installed as written. `requirements-overrides.txt` lists the pins we changed and why, and `requirements.lock.txt` is the result.
 - **Seeds.** Their code never sets a seed, so it runs with vLLM's default every time. The wrapper passes `--seed`; the real runs must do the same, or "3 seeds" gives three identical runs.
 - **No real resume.** `load_samples` reloads the saved state, but the loop still restarts from round 0. If real runs are longer than a session lasts, this must be fixed first.
 

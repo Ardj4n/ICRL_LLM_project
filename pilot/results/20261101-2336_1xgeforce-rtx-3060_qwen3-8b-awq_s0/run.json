@@ -1,0 +1,44 @@
+{
+  "run_id": "20261101-2336_1xgeforce-rtx-3060_qwen3-8b-awq_s0",
+  "status": "completed",
+  "dry_run": false,
+  "argv": [
+    "pilot/run_game24_pilot.py",
+    "--model",
+    "Qwen/Qwen3-8B-AWQ",
+    "--gpu-mem-util",
+    "0.90",
+    "--max-model-len",
+    "24000",
+    "--rounds",
+    "2"
+  ],
+  "started": "2026-11-01T23:36:04",
+  "rounds_requested": 2,
+  "max_minutes": null,
+  "model": "Qwen/Qwen3-8B-AWQ",
+  "seed": 0,
+  "raw_dir": "pilot/runs/20261101-2336_1xgeforce-rtx-3060_qwen3-8b-awq_s0",
+  "authors_file_sha256": "5a382aa1d0ce2105ec4f75750d836ff2d40b3a4917b4723d414bd5f29f92d0f3",
+  "authors_llm_kwargs": {
+    "model": "Qwen/Qwen3-32B",
+    "tensor_parallel_size": 2,
+    "gpu_memory_utilization": 0.95
+  },
+  "llm_kwargs": {
+    "model": "Qwen/Qwen3-8B-AWQ",
+    "tensor_parallel_size": 1,
+    "gpu_memory_utilization": 0.9,
+    "seed": 0,
+    "disable_log_stats": false,
+    "max_model_len": 24000
+  },
+  "model_load_s": 74.0,
+  "finished": "2026-11-02T00:06:21",
+  "total_seconds": 1854.8,
+  "rounds_completed": 2,
+  "last_round_started": 1,
+  "tail_seconds_after_last_generate": 0.97,
+  "metrics_error": null,
+  "raw_output_bytes": 7352656
+}

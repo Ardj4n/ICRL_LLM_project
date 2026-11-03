@@ -1,112 +1,55 @@
 # Journal
 
-Details and full steps: [pilot/README.md](pilot/README.md).
+Concrete results, by day. Everything else is in `journal/`, linked under each day.
 
-## To do
+## 2026-11-03
 
-- [ ] Commit the uncommitted setup (`tools/`, `authors/`, `pilot/`, `JOURNAL.md`).
-- [ ] Get a GPU and enough disk on Renku (current session has neither).
-- [ ] Run the pilot and commit `pilot/results/`.
-- [ ] Fix `PROPOSAL.md`: Claim 3's "explore"/"exploit" sentence; Claim 2 cites a missing Claim 1.
+- [Claim 2](CLAIM_2.md): each aspect of the claim, what this machine covers and what Renku needs.
+- [To do](journal/2026-11-03_todo.md): tasks done and still open.
+- [Decisions](journal/2026-11-03_decisions.md): the project's decisions, with options and recommendations.
+- [Models](journal/2026-11-03_models.md): which models the paper uses, which fit 12 GB, and why 14B was dropped.
+- [What is valid](journal/2026-11-03_validity.md): what the audit checked, what the runs can support, and what to declare in the report.
+- [Why outputs are cut](journal/2026-11-03_truncation.md): the causes of truncation, with numbers and examples.
+- [Pilot tools added](journal/2026-11-03_pilot_tools.md): new wrapper options, `judge_quality.py`, and where prompts are saved.
 
-## Decisions
+The chat template fixes the judge (`--prompt-format chat`: the model's template, thinking off; one seed, few rounds: not a result):
 
-| # | Decision | Options | Recommendation |
+| | 8B-AWQ raw (2 rounds) | 8B-AWQ chat (3 rounds) | 4B-AWQ chat (3 rounds) |
 | --- | --- | --- | --- |
-| 1 | Model | 32B, 14B, 8B-AWQ | By VRAM: 32B from ~100 GB, 14B from 40 GB, 8B-AWQ on 12 GB |
-| 2 | Model good enough? | Keep or change | Must beat Best-of-N in the pilot |
-| 3 | Rounds | 30-50 | Fewest that show the trend |
-| 4 | More compute? | Renku or more | After the pilot: hours × runs vs quota |
-| 5 | Runs in scope | Claim 2 = 21 runs (15 new), plus Claims 1 and 3 | Agree on one final list |
-| 6 | Success metric | Authors' or strict | Report both, pick after the pilot |
-| 7 | Raw outputs | Session disk or data connector | Connector for real runs |
-| 8 | Checkpoint resume | Implement or not | Needed if a run outlasts a session |
-| 9 | Changing authors' code | Wrapper or edits | Wrapper: `sync_authors.py` overwrites `authors/` |
+| Minutes per round | ~15 | ~5.5 | ~3 |
+| Policy answers empty | 64% | 1% | 35% |
+| Judge gave a score | 43% | 96% | 79% |
+| Judge cut at `max_tokens` | 94% | 4% | 16% |
+| Step balanced accuracy, against an exact oracle | 45% | 89% | 79% |
+| Mean return, solved / wrong | 13.0 / 3.2 | 16.7 / 1.4 | 15.9 / 1.8 |
+| Solved so far, strict | 4 | 12 | 8 |
+
+- Audit of the 8B chat run: no bug found. The authors' checker agrees with an independent one on 298 of 298 attempts, and the 30% format failures of 8B are real model errors.
+- The judge is too generous on solutions: 10 for 32 attempts, 15 really solved (8B).
+- Cuts with the chat template: policy 0 of 600; judge 48 of 1200 (8B) and 194 of 1200 (4B). 45 of the 47 cuts on real 8B attempts fall on unreachable steps, where the resulting 0 is right. 147 of the 194 cuts of 4B come from empty attempts.
+- 14B-AWQ dropped, not tested: 10 GB of weights leave about no KV cache on 12 GB (estimate).
+- Downloads were slow on 3 Nov, about 2.5 MB/s against 12 MB/s on 1 Nov, in WSL and Windows alike. WSL is not the cause. The clean line speed is still to be measured.
+
+## 2026-11-02
+
+- [Raw judge](journal/2026-11-02_judge_signal.md): how the judge's scores break with raw prompts, in detail.
+- [Local GPU](journal/2026-11-02_local_gpu.md): the machine, and what it took to run on 12 GB.
+
+- The pilot installs and runs on the local RTX 3060 in WSL2, with 4 more pins, `--gpu-mem-util 0.90` and `--max-model-len 24000`.
+- Smoke test (`20261101-2336_...`, 2 rounds, 8B-AWQ, one seed: not a result): 30.9 min, 15 min/round: policy ~205 s, judge ~680 s. ~550 tokens/s. KV cache at 1.00 from round 0, 3599 preemptions.
+- Straight-line estimate 12.9 h per 51-round run, ~270 h for 21 runs. Would change if the judge stops early.
+- With raw prompts the judge's scores are mostly not real: 94% hit `max_tokens`, 54.6% contain no score, and the mean return is 7.1 for empty answers against 3.8 for real ones.
 
 ## 2026-11-01
 
-**Authors' code**
+- [Authors' code](journal/2026-11-01_authors_code.md): the pinned commit, how to sync it, and its known issues.
+- [Pilot](journal/2026-11-01_pilot.md): what the pilot measures and where it has been tested.
+- [Renku](journal/2026-11-01_renku.md): the first session's resources, and the commands to run the pilot.
+- [Estimates](journal/2026-11-01_estimates.md): expected parallel requests by VRAM and run times, from before the pilot.
 
-- Pinned to `43429cd` (tag `icrl-proposal-base`), synced by `tools/sync_authors.py` from a clone in `ignored/`. 7 API keys removed. `ignored/` still holds them.
-- Its Game of 24 code is identical to `6fd3963`, which added vLLM.
-- All 4 upstream branches checked: none is a better base.
-- Paper's exact commit unknown. It reports Game of 24 on GPT-4.1 only, so there is no published Qwen3 number; nearest commits are `b85f663`-`1d20fdb`.
-- For the report: *"We use the authors' code at commit `43429cd` with their vLLM path. The paper reports Game of 24 only on GPT-4.1 and states no commit."*
-
-```bash
-python tools/sync_authors.py --dry-run
-python tools/sync_authors.py [--tag other-tag] [--force]
-```
-
-**Authors' code issues**
-
-- Success in `plots.ipynb` is `accuracy_reward == 0` only, on rounds 1-49: wrong numbers can count as solved. `summarize.py` reports this and a strict rule.
-- Requirements do not install as written: see `pilot/requirements-overrides.txt`.
-- No seed set: real runs must pass one.
-- `load_samples` restarts from round 0: no real resume.
-
-**Pilot** (`pilot/`, branch `pilot-compute`)
-
-- Measures system, time, tokens and GPU, with the authors' code unchanged.
-- Tested only on a fake backend, not yet on vLLM or Renku.
-
-**First Renku session**
-
-- No GPU. 8 cores, 31 GB RAM.
-- `/home/renku/work` has 7.8 GB; `overlay` has 144 GB, persistence unknown.
-- Needs a GPU and ~100 GB of disk for 32B, ~50 GB for 14B.
-- Session disk survives a pause, not a shutdown.
-
-**Estimates** (to replace with pilot data; assumes ~7000 tokens per request in late rounds)
-
-Requests in parallel, out of 100, in late rounds:
-
-| VRAM | 32B (65.5 GB) | 14B (29.5 GB) | 8B (16.4 GB) | 8B-AWQ (6.1 GB) |
-| --- | --- | --- | --- | --- |
-| 12 GB | no | no | no | ~6 |
-| 24 GB | no | no | ~6 | – |
-| 40 GB | no | ~7 | ~21 | – |
-| 48 GB (2×24) | no | ~14 | ~28 | – |
-| 80 GB | ~5 | ~40 | ~58 | – |
-| 160 GB (2×80) | ~47 | 100 | 100 | – |
-
-Time at the 26M-token worst case of a 51-round run (example speeds):
-
-| Tokens/s | One run | 21 runs |
-| --- | --- | --- |
-| 5000 | ~1.4 h | ~30 h |
-| 1000 | ~7 h | ~150 h |
-
-### Pilot commands
-
-In a Renku VS Code terminal with a GPU. Set `HF_HOME` in every new terminal.
-
-```bash
-git clone -b pilot-compute https://github.com/Ardj4n/ICRL_LLM_project.git
-cd ICRL_LLM_project
-export HF_HOME=/path/on/a/large/disk
-bash pilot/setup_renku.sh
-PY=pilot/runs/_deps/venv/bin/python
-
-$PY pilot/probe_system.py --resource-class "..." --idle-timeout "..." --quota-notes "..."
-git add pilot/results && git commit -m "Pilot: system probe" && git push
-
-$PY pilot/run_game24_pilot.py --rounds 2     # smoke test; add --model to change model
-$PY pilot/summarize.py pilot/results/<run_id>
-
-nohup $PY pilot/run_game24_pilot.py --rounds 51 --max-minutes 240 > pilot/runs/pilot.out 2>&1 &
-tail -f pilot/runs/pilot.out
-
-$PY pilot/summarize.py pilot/results/<run_id>
-git add pilot/results && git commit -m "Pilot: <model> on <gpu>" && git push
-```
-
-Without a GPU:
-
-```bash
-uv run --no-project --python 3.11 --with numpy==1.26.4 --with sympy==1.13.3 \
-    python pilot/run_game24_pilot.py --dry-run --rounds 5
-```
+- Authors' code pinned to `43429cd` (tag `icrl-proposal-base`), with 7 API keys removed.
+- Compute pilot written (`pilot/`, branch `pilot-compute`), tested on a fake backend only.
+- First Renku session: no GPU, 8 cores, 31 GB RAM, 7.8 GB in `/home/renku/work`. The pilot cannot run there.
 
 ## 2026-10-27
 

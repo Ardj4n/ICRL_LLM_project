@@ -1,0 +1,41 @@
+{
+  "run_id": "20261101-2327_1xgeforce-rtx-3060_qwen3-8b-awq_s0",
+  "status": "crashed",
+  "dry_run": false,
+  "argv": [
+    "pilot/run_game24_pilot.py",
+    "--model",
+    "Qwen/Qwen3-8B-AWQ",
+    "--gpu-mem-util",
+    "0.88",
+    "--rounds",
+    "2"
+  ],
+  "started": "2026-11-01T23:27:37",
+  "rounds_requested": 2,
+  "max_minutes": null,
+  "model": "Qwen/Qwen3-8B-AWQ",
+  "seed": 0,
+  "raw_dir": "pilot/runs/20261101-2327_1xgeforce-rtx-3060_qwen3-8b-awq_s0",
+  "authors_file_sha256": "5a382aa1d0ce2105ec4f75750d836ff2d40b3a4917b4723d414bd5f29f92d0f3",
+  "authors_llm_kwargs": {
+    "model": "Qwen/Qwen3-32B",
+    "tensor_parallel_size": 2,
+    "gpu_memory_utilization": 0.95
+  },
+  "llm_kwargs": {
+    "model": "Qwen/Qwen3-8B-AWQ",
+    "tensor_parallel_size": 1,
+    "gpu_memory_utilization": 0.88,
+    "seed": 0,
+    "disable_log_stats": false
+  },
+  "error": "Traceback (most recent call last):\n  File \"/home/ardj/ICRL_LLM_project/pilot/run_game24_pilot.py\", line 321, in main\n    module = import_authors_module()\n             ^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ardj/ICRL_LLM_project/pilot/run_game24_pilot.py\", line 237, in import_authors_module\n    spec.loader.exec_module(module)\n  File \"<frozen importlib._bootstrap_external>\", line 940, in exec_module\n  File \"<frozen importlib._bootstrap>\", line 241, in _call_with_frames_removed\n  File \"/home/ardj/ICRL_LLM_project/authors/experiments/game24/game24_icrl.py\", line 48, in <module>\n    llm = LLM(model=\"Qwen/Qwen3-32B\",\n         ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ardj/ICRL_LLM_project/pilot/run_game24_pilot.py\", line 225, in make_llm\n    llm = real_llm_class(**kwargs)\n          ^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ardj/ICRL_LLM_project/pilot/runs/_deps/venv/lib/python3.11/site-packages/vllm/entrypoints/llm.py\", line 273, in __init__\n    self.llm_engine = LLMEngine.from_engine_args(\n                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ardj/ICRL_LLM_project/pilot/runs/_deps/venv/lib/python3.11/site-packages/vllm/engine/llm_engine.py\", line 497, in from_engine_args\n    return engine_cls.from_vllm_config(\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ardj/ICRL_LLM_project/pilot/runs/_deps/venv/lib/python3.11/site-packages/vllm/v1/engine/llm_engine.py\", line 126, in from_vllm_config\n    return cls(vllm_config=vllm_config,\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ardj/ICRL_LLM_project/pilot/runs/_deps/venv/lib/python3.11/site-packages/vllm/v1/engine/llm_engine.py\", line 103, in __init__\n    self.engine_core = EngineCoreClient.make_client(\n                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ardj/ICRL_LLM_project/pilot/runs/_deps/venv/lib/python3.11/site-packages/vllm/v1/engine/core_client.py\", line 77, in make_client\n    return SyncMPClient(vllm_config, executor_class, log_stats)\n           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^\n  File \"/home/ardj/ICRL_LLM_project/pilot/runs/_deps/venv/lib/python3.11/site-packages/vllm/v1/engine/core_client.py\", line 514, in __init__\n    super().__init__(\n  File \"/home/ardj/ICRL_LLM_project/pilot/runs/_deps/venv/lib/python3.11/site-packages/vllm/v1/engine/core_client.py\", line 408, in __init__\n    with launch_core_engines(vllm_config, executor_class,\n  File \"/home/ardj/.local/share/uv/python/cpython-3.11.18-linux-x86_64-gnu/lib/python3.11/contextlib.py\", line 144, in __exit__\n    next(self.gen)\n  File \"/home/ardj/ICRL_LLM_project/pilot/runs/_deps/venv/lib/python3.11/site-packages/vllm/v1/engine/utils.py\", line 697, in launch_core_engines\n    wait_for_engine_startup(\n  File \"/home/ardj/ICRL_LLM_project/pilot/runs/_deps/venv/lib/python3.11/site-packages/vllm/v1/engine/utils.py\", line 750, in wait_for_engine_startup\n    raise RuntimeError(\"Engine core initialization failed. \"\nRuntimeError: Engine core initialization failed. See root cause above. Failed core proc(s): {}\n",
+  "finished": "2026-11-01T23:35:21",
+  "total_seconds": 470.2,
+  "rounds_completed": null,
+  "last_round_started": -1,
+  "tail_seconds_after_last_generate": null,
+  "metrics_error": null,
+  "raw_output_bytes": 0
+}

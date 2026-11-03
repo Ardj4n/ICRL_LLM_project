@@ -14,6 +14,8 @@ import importlib.util
 import json
 import builtins
 import os
+import re
+import shutil
 import subprocess
 import sys
 import threading
@@ -40,6 +42,7 @@ GPU_SAMPLE_SECONDS = 10
 KV_POLL_SECONDS = 5
 GPU_FIELDS = ["index", "utilization.gpu", "memory.used", "memory.total", "power.draw", "temperature.gpu"]
 THROTTLE_FIELD = "clocks_throttle_reasons.active"
+JUDGE_PROMPTS = ("first step", "second step", "third step", "solution")  # the authors' order
 
 
 class BudgetReached(Exception):
@@ -91,11 +94,36 @@ class GpuSampler:
             self.thread.join(timeout=5)
 
 
+def fenced(text):
+    """A code block that the text itself cannot close."""
+    longest = max((len(run) for run in re.findall(r"`+", text)), default=0)
+    fence = "`" * max(3, longest + 1)
+    return f"{fence}text\n{text}\n{fence}\n"
+
+
+def write_prompt_md(prompts_dir, run_id, round_index, phase, i, finish, prompt, response):
+    """One file per problem and round: its policy request, then its four judge requests."""
+    folder = prompts_dir / f"round_{round_index:03d}"
+    problem = i if phase == "policy" else i // len(JUDGE_PROMPTS)
+    if phase == "policy":
+        folder.mkdir(parents=True, exist_ok=True)
+        section = f"# Round {round_index}, problem {problem}\n\nRun: `{run_id}`\n\n## Policy\n"
+    else:
+        section = f"## Judge: {JUDGE_PROMPTS[i % len(JUDGE_PROMPTS)]}\n"
+    path = folder / f"prompt_{problem:03d}.md"
+    with builtins.open(path, "w" if phase == "policy" else "a", encoding="utf-8") as f:
+        f.write(f"{section}\nFinish: `{finish}`\n\n### Prompt\n\n{fenced(prompt)}\n### Response\n\n{fenced(response)}\n")
+
+
 class Recorder:
     """Collect one record per generate call, into rounds.jsonl."""
 
-    def __init__(self, path, raw_dir, start, max_seconds):
+    def __init__(self, path, raw_dir, prompts_dir, run_id, start, max_seconds):
         self.file = builtins.open(path, "w")
+        self.generations = builtins.open(raw_dir / "generations.log", "w")  # .log: not in raw_bytes
+        self.prompts_dir = prompts_dir
+        self.prompts_cleared = False
+        self.run_id = run_id
         self.raw_dir = raw_dir
         self.start = start
         self.max_seconds = max_seconds
@@ -109,6 +137,14 @@ class Recorder:
     def write(self, record):
         self.file.write(json.dumps(record) + "\n")
         self.file.flush()
+
+    def save_prompt(self, phase, i, finish, prompt, response):
+        """Replace the previous run of this model; pilot/runs keeps the responses of each run."""
+        if not self.prompts_cleared:
+            # Not earlier: a run that crashes while loading keeps the previous files.
+            shutil.rmtree(self.prompts_dir, ignore_errors=True)
+            self.prompts_cleared = True
+        write_prompt_md(self.prompts_dir, self.run_id, self.round, phase, i, finish, prompt, response)
 
 
 def read_engine_metrics(llm, recorder):
@@ -128,15 +164,45 @@ def read_engine_metrics(llm, recorder):
 
 
 class InstrumentedLLM:
-    def __init__(self, real_llm, recorder):
+    def __init__(self, real_llm, recorder, args):
         self.llm = real_llm
         self.recorder = recorder
+        self.args = args
 
     def _poll_kv_cache(self, stop, peaks):
         while not stop.wait(KV_POLL_SECONDS):
             _, usage = read_engine_metrics(self.llm, self.recorder)
             if usage is not None:
                 peaks.append(usage)
+
+    def _format_prompts(self, prompts, phase):
+        if self.args.prompt_format == "raw":
+            return prompts
+        tokenizer = self.llm.get_tokenizer()
+        thinking = phase == "judge" and self.args.judge_thinking
+        # Templates without a thinking mode, such as Phi-4's, ignore enable_thinking.
+        return [
+            tokenizer.apply_chat_template(
+                [{"role": "user", "content": p}],
+                tokenize=False, add_generation_prompt=True, enable_thinking=thinking,
+            )
+            for p in prompts
+        ]
+
+    def _save_and_clean(self, prompts, outputs, phase):
+        """Keep the raw text, which the authors overwrite before saving, and hide thinking from their parser."""
+        rec = self.recorder
+        for i, (prompt, output) in enumerate(zip(prompts, outputs)):
+            completion = output.outputs[0]
+            rec.generations.write(json.dumps({
+                "round": rec.round, "phase": phase, "i": i,
+                "finish": completion.finish_reason, "text": completion.text,
+            }) + "\n")
+            rec.save_prompt(phase, i, completion.finish_reason, prompt, completion.text)
+            if phase == "judge" and self.args.judge_thinking:
+                # Cut off while thinking means no score, as for any other truncated response.
+                completion.text = completion.text.split("</think>")[-1] if "</think>" in completion.text else ""
+        rec.generations.flush()
 
     def generate(self, prompts, sampling_params, **kwargs):
         rec = self.recorder
@@ -146,6 +212,11 @@ class InstrumentedLLM:
             if time.monotonic() - rec.start > rec.max_seconds:
                 raise BudgetReached()
             rec.round += 1
+        elif self.args.method == "best-of-n":
+            sampling_params.max_tokens = 1  # Best-of-N never shows the judge's scores to the policy
+        elif self.args.judge_max_tokens is not None:
+            sampling_params.max_tokens = self.args.judge_max_tokens
+        prompts = self._format_prompts(prompts, phase)
 
         begin = time.monotonic()
         gap = begin - rec.last_end if rec.last_end is not None else None
@@ -166,6 +237,7 @@ class InstrumentedLLM:
         prompt_tokens = [len(o.prompt_token_ids) for o in outputs]
         gen_tokens = [len(o.outputs[0].token_ids) for o in outputs]
         reasons = [o.outputs[0].finish_reason for o in outputs]
+        self._save_and_clean(prompts, outputs, phase)
         record = {
             "round": rec.round,
             "phase": phase,
@@ -219,6 +291,8 @@ def patch_llm(args, recorder, run_info):
             seed=args.seed,
             disable_log_stats=False,  # needed by get_metrics()
         )
+        if args.max_model_len is not None:
+            kwargs["max_model_len"] = args.max_model_len
         run_info["llm_kwargs"] = kwargs
         progress(f"loading {args.model} on {args.gpus} GPU(s)...")
         begin = time.monotonic()
@@ -226,7 +300,7 @@ def patch_llm(args, recorder, run_info):
         run_info["model_load_s"] = round(time.monotonic() - begin, 1)
         write_run_info(args.results_dir, run_info)
         progress(f"model loaded in {run_info['model_load_s']}s")
-        return InstrumentedLLM(llm, recorder)
+        return InstrumentedLLM(llm, recorder, args)
 
     vllm.LLM = make_llm
 
@@ -257,6 +331,16 @@ def parse_args():
     parser.add_argument("--model", default="Qwen/Qwen3-32B")
     parser.add_argument("--gpus", type=int, default=None, help="default: all GPUs visible to nvidia-smi")
     parser.add_argument("--gpu-mem-util", type=float, default=0.95, help="the authors use 0.95")
+    parser.add_argument("--max-model-len", type=int, default=None,
+                        help="the authors leave it to the model's limit; needed when the KV cache cannot fit one such request")
+    parser.add_argument("--prompt-format", choices=["raw", "chat"], default="raw",
+                        help="raw: as the authors' code. chat: the model's chat template, thinking off")
+    parser.add_argument("--judge-thinking", action="store_true",
+                        help="with chat: thinking on for the judge only, removed before the authors' parser")
+    parser.add_argument("--judge-max-tokens", type=int, default=None, help="the authors use 1024")
+    parser.add_argument("--method", choices=["icrl", "best-of-n"], default="icrl",
+                        help="best-of-n: the authors' rejection_sampling, with judge calls cut to one token")
+    parser.add_argument("--label", default="", help="added to the run id, to tell variants apart")
     parser.add_argument("--rounds", type=int, default=51, help="the authors use 51")
     parser.add_argument("--max-minutes", type=float, default=float("inf"), help="stop cleanly at the next round")
     parser.add_argument("--seed", type=int, default=0)
@@ -276,15 +360,18 @@ def main():
         args.gpus = max(system["gpu"]["count"], 1)
 
     stamp = datetime.now().strftime("%Y%m%d-%H%M")
-    model_slug = args.model.split("/")[-1].lower()
-    run_id = f"{stamp}_{probe_system.gpu_slug(system)}_{model_slug}_s{args.seed}"
+    model_slug = args.model.rstrip("/").split("/")[-1].lower()
+    label = f"_{args.label}" if args.label else ""
+    run_id = f"{stamp}_{probe_system.gpu_slug(system)}_{model_slug}{label}_s{args.seed}"
     raw_dir = PILOT / "runs" / run_id
     # A dry run is only a test of this tool: it stays out of the folder committed to git.
     args.results_dir = (raw_dir / "results") if args.dry_run else (PILOT / "results" / run_id)
+    prompts_dir = (raw_dir / "prompts") if args.dry_run else (ROOT / "ignored" / "game24" / f"{model_slug}{label}")
     raw_dir.mkdir(parents=True, exist_ok=True)
     args.results_dir.mkdir(parents=True, exist_ok=True)
     (args.results_dir / "system.json").write_text(json.dumps(system, indent=2) + "\n")
 
+    revision = Path(args.model) / "REVISION"  # written next to a model kept as a plain folder
     run_info = {
         "run_id": run_id,
         "status": "running",  # left as is if the session is killed
@@ -294,14 +381,20 @@ def main():
         "rounds_requested": args.rounds,
         "max_minutes": None if args.max_minutes == float("inf") else args.max_minutes,
         "model": args.model,
+        "model_revision": revision.read_text().strip() if revision.exists() else None,
         "seed": args.seed,
+        "method": args.method,
+        "prompt_format": args.prompt_format,
+        "judge_thinking": args.judge_thinking,
+        "judge_max_tokens": args.judge_max_tokens,
         "raw_dir": raw_dir.relative_to(ROOT).as_posix(),
-        "authors_file_sha256": hashlib.sha256(AUTHORS_FILE.read_bytes()).hexdigest(),
+        # LF first: the same file must give the same hash on a Windows checkout.
+        "authors_file_sha256": hashlib.sha256(AUTHORS_FILE.read_bytes().replace(b"\r\n", b"\n")).hexdigest(),
     }
     write_run_info(args.results_dir, run_info)
     progress(f"run {run_id}, results in {args.results_dir}")
 
-    recorder = Recorder(args.results_dir / "rounds.jsonl", raw_dir, start, args.max_minutes * 60)
+    recorder = Recorder(args.results_dir / "rounds.jsonl", raw_dir, prompts_dir, run_id, start, args.max_minutes * 60)
     sampler = GpuSampler(args.results_dir / "gpu_samples.jsonl")
     sampler.start()
 
@@ -320,6 +413,7 @@ def main():
                 patch_llm(args, recorder, run_info)
                 module = import_authors_module()
                 redirect_writes(module, raw_dir)
+                module.rejection_sampling = int(args.method == "best-of-n")
                 module.evaluate_checkpoint(base_model_id=args.model, n=args.rounds)
         run_info["status"] = "completed"
     except BudgetReached:

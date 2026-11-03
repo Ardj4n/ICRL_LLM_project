@@ -1,0 +1,7 @@
+{"t": 0, "index": 0.0, "utilization.gpu": 0.0, "memory.used": 0.0, "memory.total": 12288.0, "power.draw": 14.65, "temperature.gpu": 52.0, "clocks_throttle_reasons.active": "0x0000000000000001"}
+{"t": 10, "index": 0.0, "utilization.gpu": 0.0, "memory.used": 6041.0, "memory.total": 12288.0, "power.draw": 45.65, "temperature.gpu": 52.0, "clocks_throttle_reasons.active": "0x0000000000000000"}
+{"t": 20, "index": 0.0, "utilization.gpu": 2.0, "memory.used": 6065.0, "memory.total": 12288.0, "power.draw": 16.68, "temperature.gpu": 47.0, "clocks_throttle_reasons.active": "0x0000000000000001"}
+{"t": 30, "index": 0.0, "utilization.gpu": 4.0, "memory.used": 6065.0, "memory.total": 12288.0, "power.draw": 14.59, "temperature.gpu": 44.0, "clocks_throttle_reasons.active": "0x0000000000000001"}
+{"t": 40, "index": 0.0, "utilization.gpu": 1.0, "memory.used": 6065.0, "memory.total": 12288.0, "power.draw": 14.68, "temperature.gpu": 42.0, "clocks_throttle_reasons.active": "0x0000000000000001"}
+{"t": 50, "index": 0.0, "utilization.gpu": 4.0, "memory.used": 6065.0, "memory.total": 12288.0, "power.draw": 14.52, "temperature.gpu": 40.0, "clocks_throttle_reasons.active": "0x0000000000000001"}
+{"t": 60, "index": 0.0, "utilization.gpu": 3.0, "memory.used": 6065.0, "memory.total": 12288.0, "power.draw": 14.43, "temperature.gpu": 39.0, "clocks_throttle_reasons.active": "0x0000000000000001"}
